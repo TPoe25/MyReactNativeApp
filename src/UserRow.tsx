@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-import type { User } from "./db";
+import type { User } from "./db.native";
 
 export function UserRow({
   user,

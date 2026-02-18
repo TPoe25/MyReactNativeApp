@@ -1,7 +1,7 @@
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-import type { Activity } from "./db";
+import type { Activity } from "./db.native";
 
 export function ActivityRow({
     item,
