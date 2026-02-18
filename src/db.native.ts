@@ -133,3 +133,57 @@ export function deleteAllActivitiesForUser(userId: number) {
   initDb();
   db!.runSync(`DELETE FROM activities WHERE user_id = ?;`, [userId]);
 }
+
+export function updateActivity(
+  activityId: number,
+  updates: {
+    title: string;
+    sets?: number | null;
+    reps?: number | null;
+    weight?: number | null;
+    duration_minutes?: number | null;
+    distance_miles?: number | null;
+    notes?: string | null;
+  }
+) {
+  initDb();
+
+  const title = updates.title.trim();
+  if (!title) return;
+
+  const notes =
+    updates.notes === null || updates.notes === undefined
+      ? null
+      : updates.notes.trim() || null;
+
+  db!.runSync(
+    `UPDATE activities SET
+      title = ?,
+      sets = ?,
+      reps = ?,
+      weight = ?,
+      duration_minutes = ?,
+      distance_miles = ?,
+      notes = ?
+    WHERE id = ?;`,
+    [
+      title,
+      updates.sets ?? null,
+      updates.reps ?? null,
+      updates.weight ?? null,
+      updates.duration_minutes ?? null,
+      updates.distance_miles ?? null,
+      notes,
+      activityId,
+    ]
+  );
+}
+
+export function getActivityById(activityId: number): Activity | null {
+  initDb();
+  const rows = db!.getAllSync<Activity>(
+    `SELECT * FROM activities WHERE id = ? LIMIT 1;`,
+    [activityId]
+  );
+  return rows[0] ?? null;
+}

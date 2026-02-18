@@ -22,7 +22,7 @@ export default function UsersHome() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.h1}>User Information</Text>
+      <Text style={styles.h1}>Workout Tracker</Text>
 
       <Pressable style={styles.primaryBtn} onPress={() => router.push("/add-user")}>
         <Text style={styles.primaryText}>Add user</Text>

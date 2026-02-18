@@ -16,28 +16,41 @@ function meta(label: string, value: string | number | null | undefined) {
 export function ActivityRow({
     a,
     onDelete,
+    onPress,
 }: {
     a: Activity;
     onDelete?: () => void;
+    onPress?: () => void;
 }) {
     const isStrength = a.kind === "strength";
 
     return (
-        <View style={styles.card}>
+        <Pressable
+            onPress={onPress}
+            disabled={!onPress}
+            style={({ pressed }) => [
+                styles.card,
+                pressed && onPress ? { opacity: 0.92 } : null,
+            ]}
+        >
             <View style={styles.topRow}>
                 <Text style={styles.title} numberOfLines={1}>
                     {a.title}
                 </Text>
 
                 <View style={styles.rightTop}>
-                    <Text style={styles.badge}>{isStrength ? "Strength" : "Conditioning"}</Text>
+                    <Text style={styles.badge}>
+                        {isStrength ? "Strength" : "Conditioning"}
+                    </Text>
 
                     {onDelete ? (
                         <Pressable
                             onPress={onDelete}
-                            style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.8 }]}
-                            accessibilityRole="button"
-                            accessibilityLabel="Delete activity"
+                            style={({ pressed }) => [
+                                styles.deleteBtn,
+                                pressed ? { opacity: 0.85 } : null,
+                            ]}
+                            hitSlop={8}
                         >
                             <Text style={styles.deleteText}>Delete</Text>
                         </Pressable>
@@ -61,7 +74,7 @@ export function ActivityRow({
                 {meta("Notes", a.notes)}
                 {meta("Added", a.created_at)}
             </View>
-        </View>
+        </Pressable>
     );
 }
 

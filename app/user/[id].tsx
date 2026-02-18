@@ -2,9 +2,8 @@ import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
-import { ActivityRow } from "../../src/ActivityRow";
 import { SwipeToDelete } from "../../src/SwipeToDelete";
-
+import { ActivityRow } from "../../src/ActivityRow";
 
 import {
     initDb,
@@ -20,15 +19,19 @@ export default function UserDetail() {
 
     const [activities, setActivities] = useState<Activity[]>([]);
 
-    useEffect(() => {
-        initDb();
+    const refresh = React.useCallback(() => {
         setActivities(getActivitiesForUser(userId));
     }, [userId]);
 
+    useEffect(() => {
+        initDb();
+        refresh();
+    }, [refresh]);
+
     useFocusEffect(
         React.useCallback(() => {
-            setActivities(getActivitiesForUser(userId));
-        }, [userId])
+            refresh();
+        }, [refresh])
     );
 
     return (
@@ -46,7 +49,7 @@ export default function UserDetail() {
                 style={styles.secondaryBtn}
                 onPress={() => {
                     deleteAllActivitiesForUser(userId);
-                    setActivities(getActivitiesForUser(userId));
+                    refresh();
                 }}
             >
                 <Text style={styles.secondaryText}>Delete All Activities</Text>
@@ -64,10 +67,18 @@ export default function UserDetail() {
                         <SwipeToDelete
                             onDelete={() => {
                                 deleteActivity(item.id);
-                                setActivities(getActivitiesForUser(userId));
+                                refresh();
                             }}
                         >
-                            <ActivityRow a={item} />
+                            <ActivityRow
+                                a={item}
+                                onPress={() => router.push(`/user/${userId}/edit-activity/${item.id}`)}
+
+                                onDelete={() => {
+                                    deleteActivity(item.id);
+                                    refresh();
+                                }}
+                            />
                         </SwipeToDelete>
                     )}
 
