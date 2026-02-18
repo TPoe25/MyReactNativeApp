@@ -1,0 +1,144 @@
+import * as SQLite from "expo-sqlite";
+
+const db = SQLite.openDatabaseSync("sports_tracker.db");
+
+export type User = {
+  id: number;
+  name: string;
+  created_at: string;
+};
+
+export type ActivityKind = "strength" | "conditioning";
+
+export type Activity = {
+  id: number;
+  user_id: number;
+  kind: ActivityKind;
+  title: string;
+
+  // strength
+  sets: number | null;
+  reps: number | null;
+  weight: number | null;
+
+  // conditioning
+  duration_minutes: number | null;
+  distance_miles: number | null;
+
+  notes: string | null;
+  created_at: string;
+};
+
+export function initDb() {
+  db.execSync(`
+    PRAGMA journal_mode = WAL;
+
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS activities (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      kind TEXT NOT NULL CHECK(kind IN ('strength','conditioning')),
+      title TEXT NOT NULL,
+
+      sets INTEGER,
+      reps INTEGER,
+      weight REAL,
+
+      duration_minutes INTEGER,
+      distance_miles REAL,
+
+      notes TEXT,
+      created_at TEXT NOT NULL,
+
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+}
+
+// ---- users ----
+export function getUsers(): User[] {
+  return db.getAllSync<User>(`SELECT * FROM users ORDER BY id DESC;`);
+}
+
+export function addUser(name: string) {
+  const n = name.trim();
+  if (!n) return;
+  db.runSync(`INSERT INTO users (name, created_at) VALUES (?, datetime('now'));`, [n]);
+}
+
+export function deleteUser(id: number) {
+  // delete activities first (SQLite FK cascade may not always be enforced depending on settings)
+  db.runSync(`DELETE FROM activities WHERE user_id = ?;`, [id]);
+  db.runSync(`DELETE FROM users WHERE id = ?;`, [id]);
+}
+
+// ---- activities ----
+export function getActivitiesForUser(userId: number): Activity[] {
+  return db.getAllSync<Activity>(
+    `SELECT * FROM activities WHERE user_id = ? ORDER BY id DESC;`,
+    [userId]
+  );
+}
+
+export function addStrengthActivity(args: {
+  userId: number;
+  title: string;
+  sets: number;
+  reps: number;
+  weight?: number;
+  notes?: string;
+}) {
+  const title = args.title.trim();
+  if (!title) return;
+
+  db.runSync(
+    `INSERT INTO activities (
+      user_id, kind, title, sets, reps, weight, duration_minutes, distance_miles, notes, created_at
+    ) VALUES (?, 'strength', ?, ?, ?, ?, NULL, NULL, ?, datetime('now'));`,
+    [
+      args.userId,
+      title,
+      args.sets,
+      args.reps,
+      typeof args.weight === "number" ? args.weight : null,
+      args.notes?.trim() || null,
+    ]
+  );
+}
+
+export function addConditioningActivity(args: {
+  userId: number;
+  title: string;
+  durationMinutes: number;
+  distanceMiles?: number;
+  notes?: string;
+}) {
+  const title = args.title.trim();
+  if (!title) return;
+
+  db.runSync(
+    `INSERT INTO activities (
+      user_id, kind, title, sets, reps, weight, duration_minutes, distance_miles, notes, created_at
+    ) VALUES (?, 'conditioning', ?, NULL, NULL, NULL, ?, ?, ?, datetime('now'));`,
+    [
+      args.userId,
+      title,
+      args.durationMinutes,
+      typeof args.distanceMiles === "number" ? args.distanceMiles : null,
+      args.notes?.trim() || null,
+    ]
+  );
+}
+
+export function deleteActivity(id: number) {
+  db.runSync(`DELETE FROM activities WHERE id = ?;`, [id]);
+}
+
+export function deleteAllActivitiesForUser(userId: number) {
+  db.runSync(`DELETE FROM activities WHERE user_id = ?;`, [userId]);
+}
