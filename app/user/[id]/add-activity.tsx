@@ -1,48 +1,58 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { useMemo, useState } from "react";
 import {
-    addStrengthActivity,
-    addConditioningActivity,
-    initDb,
-    ActivityKind,
-} from "../../../src/db";
+    View,
+    Text,
+    TextInput,
+    Pressable,
+    StyleSheet,
+    Platform,
+    KeyboardAvoidingView,
+    ScrollView,
+} from "react-native";
+import { useLocalSearchParams, router } from "expo-router";
+import { addStrengthActivity, addConditioningActivity } from "../../../src/db";
+
+type Mode = "strength" | "conditioning";
 
 export default function AddActivity() {
     const { id } = useLocalSearchParams<{ id: string }>();
-    const userId = Number(id);
+    const userId = useMemo(() => Number(id), [id]);
 
-    const [kind, setKind] = useState<ActivityKind>("strength");
+    const [mode, setMode] = useState<Mode>("strength");
+
     const [title, setTitle] = useState("");
 
+    // strength
     const [sets, setSets] = useState("3");
     const [reps, setReps] = useState("10");
     const [weight, setWeight] = useState("");
 
-    const [duration, setDuration] = useState("20");
-    const [distance, setDistance] = useState("");
+    // conditioning
+    const [durationMinutes, setDurationMinutes] = useState("20");
+    const [distanceMiles, setDistanceMiles] = useState("");
 
     const [notes, setNotes] = useState("");
 
     function save() {
-        initDb();
+        const t = title.trim();
+        if (!t) return;
 
-        if (kind === "strength") {
+        if (mode === "strength") {
             addStrengthActivity({
                 userId,
-                title,
-                sets: Number(sets) || 0,
-                reps: Number(reps) || 0,
+                title: t,
+                sets: Number(sets || 0),
+                reps: Number(reps || 0),
                 weight: weight.trim() ? Number(weight) : undefined,
-                notes,
+                notes: notes.trim() || undefined,
             });
         } else {
             addConditioningActivity({
                 userId,
-                title,
-                durationMinutes: Number(duration) || 0,
-                distanceMiles: distance.trim() ? Number(distance) : undefined,
-                notes,
+                title: t,
+                durationMinutes: Number(durationMinutes || 0),
+                distanceMiles: distanceMiles.trim() ? Number(distanceMiles) : undefined,
+                notes: notes.trim() || undefined,
             });
         }
 
@@ -50,108 +60,188 @@ export default function AddActivity() {
     }
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.h1}>Add Activity</Text>
+        <KeyboardAvoidingView
+            style={{ flex: 1, backgroundColor: "#F3F4F6" }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
+        >
+            <ScrollView
+                contentContainerStyle={styles.page}
+                keyboardShouldPersistTaps="handled"
+            >
+                <Text style={styles.h1}>Add Activity</Text>
 
-            <View style={styles.toggleRow}>
-                <Pressable
-                    style={[styles.toggleBtn, kind === "strength" && styles.toggleActive]}
-                    onPress={() => setKind("strength")}
-                >
-                    <Text style={[styles.toggleText, kind === "strength" && styles.toggleTextActive]}>
-                        Strength
-                    </Text>
-                </Pressable>
-                <Pressable
-                    style={[styles.toggleBtn, kind === "conditioning" && styles.toggleActive]}
-                    onPress={() => setKind("conditioning")}
-                >
-                    <Text
-                        style={[
-                            styles.toggleText,
-                            kind === "conditioning" && styles.toggleTextActive,
-                        ]}
+                <View style={styles.segmentRow}>
+                    <Pressable
+                        onPress={() => setMode("strength")}
+                        style={[styles.segment, mode === "strength" && styles.segmentActive]}
                     >
-                        Conditioning
-                    </Text>
+                        <Text style={[styles.segmentText, mode === "strength" && styles.segmentTextActive]}>
+                            Strength
+                        </Text>
+                    </Pressable>
+
+                    <Pressable
+                        onPress={() => setMode("conditioning")}
+                        style={[styles.segment, mode === "conditioning" && styles.segmentActive]}
+                    >
+                        <Text
+                            style={[
+                                styles.segmentText,
+                                mode === "conditioning" && styles.segmentTextActive,
+                            ]}
+                        >
+                            Conditioning
+                        </Text>
+                    </Pressable>
+                </View>
+
+                <TextInput
+                    placeholder="Title (ex: Bench, 3-mile run)"
+                    value={title}
+                    onChangeText={setTitle}
+                    style={styles.input}
+                    multiline
+                    allowFontScaling={false}
+                />
+
+                {mode === "strength" ? (
+                    <>
+                        <TextInput
+                            placeholder="Sets"
+                            value={sets}
+                            onChangeText={setSets}
+                            keyboardType="number-pad"
+                            style={styles.input}
+                            multiline
+                            allowFontScaling={false}
+                        />
+                        <TextInput
+                            placeholder="Reps"
+                            value={reps}
+                            onChangeText={setReps}
+                            keyboardType="number-pad"
+                            style={styles.input}
+                            multiline
+                            allowFontScaling={false}
+                        />
+                        <TextInput
+                            placeholder="Weight (optional)"
+                            value={weight}
+                            onChangeText={setWeight}
+                            keyboardType="decimal-pad"
+                            style={styles.input}
+                            multiline
+                            allowFontScaling={false}
+                        />
+                    </>
+                ) : (
+                    <>
+                        <TextInput
+                            placeholder="Duration (minutes)"
+                            value={durationMinutes}
+                            onChangeText={setDurationMinutes}
+                            keyboardType="number-pad"
+                            style={styles.input}
+                            multiline
+                            allowFontScaling={false}
+                        />
+                        <TextInput
+                            placeholder="Distance (miles, optional)"
+                            value={distanceMiles}
+                            onChangeText={setDistanceMiles}
+                            keyboardType="decimal-pad"
+                            style={styles.input}
+                            multiline
+                            allowFontScaling={false}
+                        />
+                    </>
+                )}
+
+                <TextInput
+                    placeholder="Notes (optional)"
+                    value={notes}
+                    onChangeText={setNotes}
+                    style={[styles.input, styles.notes]}
+                    multiline
+                    allowFontScaling={false}
+                />
+
+                <Pressable onPress={save} style={styles.saveBtn}>
+                    <Text style={styles.saveText}>Save</Text>
                 </Pressable>
-            </View>
 
-            <TextInput
-                value={title}
-                onChangeText={setTitle}
-                placeholder="Title (ex: Bench, 3-mile run)"
-                style={styles.input}
-            />
+                <Pressable onPress={() => router.back()} style={styles.backBtn}>
+                    <Text style={styles.backText}>Go back</Text>
+                </Pressable>
 
-            {kind === "strength" ? (
-                <>
-                    <TextInput value={sets} onChangeText={setSets} keyboardType="number-pad" placeholder="Sets" style={styles.input} />
-                    <TextInput value={reps} onChangeText={setReps} keyboardType="number-pad" placeholder="Reps" style={styles.input} />
-                    <TextInput value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="Weight (optional)" style={styles.input} />
-                </>
-            ) : (
-                <>
-                    <TextInput value={duration} onChangeText={setDuration} keyboardType="number-pad" placeholder="Minutes" style={styles.input} />
-                    <TextInput value={distance} onChangeText={setDistance} keyboardType="decimal-pad" placeholder="Distance miles (optional)" style={styles.input} />
-                </>
-            )}
-
-            <TextInput value={notes} onChangeText={setNotes} placeholder="Notes (optional)" style={styles.input} />
-
-            <Pressable style={styles.primaryBtn} onPress={save}>
-                <Text style={styles.primaryText}>Save</Text>
-            </Pressable>
-
-            <Pressable style={styles.secondaryBtn} onPress={() => router.back()}>
-                <Text style={styles.secondaryText}>Go back</Text>
-            </Pressable>
-        </View>
+                {/* extra space so last input + buttons aren't hidden */}
+                <View style={{ height: 24 }} />
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 16, paddingTop: 50, backgroundColor: "#F3F4F6" },
-    h1: { fontSize: 28, fontWeight: "900", marginBottom: 14, color: "#111827" },
+    page: {
+        padding: 20,
+        paddingTop: 28,
+        width: "100%",
+        maxWidth: 820,
+        alignSelf: "center",
+        gap: 14,
+    },
+    h1: { fontSize: 40, fontWeight: "900", color: "#0F172A", marginBottom: 4 },
 
-    toggleRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
-    toggleBtn: {
+    segmentRow: { flexDirection: "row", gap: 12, marginBottom: 6 },
+    segment: {
         flex: 1,
-        paddingVertical: 12,
-        borderRadius: 12,
-        alignItems: "center",
+        borderRadius: 16,
+        paddingVertical: 16,
         backgroundColor: "white",
         borderWidth: 1,
         borderColor: "#E5E7EB",
+        alignItems: "center",
     },
-    toggleActive: { backgroundColor: "#111827", borderColor: "#111827" },
-    toggleText: { fontWeight: "900", color: "#111827" },
-    toggleTextActive: { color: "white" },
+    segmentActive: { backgroundColor: "#0F172A", borderColor: "#0F172A" },
+    segmentText: { fontSize: 18, fontWeight: "800", color: "#0F172A" },
+    segmentTextActive: { color: "white" },
 
     input: {
         backgroundColor: "white",
         borderWidth: 1,
         borderColor: "#E5E7EB",
-        padding: 12,
-        borderRadius: 12,
-        marginBottom: 10,
+        borderRadius: 16,
+        paddingHorizontal: 16,
+        paddingTop: 14,
+        paddingBottom: 14,
+        fontSize: 16,
+        lineHeight: 20,
     },
-    primaryBtn: {
-        paddingVertical: 12,
-        borderRadius: 12,
+
+    notes: {
+        minHeight: 120,
+        paddingTop: 14,
+        textAlignVertical: "top",
+    },
+
+
+    saveBtn: {
+        backgroundColor: "#0F172A",
+        borderRadius: 18,
+        paddingVertical: 18,
         alignItems: "center",
-        backgroundColor: "#111827",
         marginTop: 6,
-        marginBottom: 10,
     },
-    primaryText: { color: "white", fontWeight: "900" },
-    secondaryBtn: {
-        paddingVertical: 12,
-        borderRadius: 12,
-        alignItems: "center",
+    saveText: { color: "white", fontSize: 18, fontWeight: "900" },
+
+    backBtn: {
         backgroundColor: "white",
+        borderRadius: 18,
+        paddingVertical: 18,
+        alignItems: "center",
         borderWidth: 1,
         borderColor: "#E5E7EB",
     },
-    secondaryText: { fontWeight: "900", color: "#111827" },
+    backText: { color: "#0F172A", fontWeight: "800" },
 });

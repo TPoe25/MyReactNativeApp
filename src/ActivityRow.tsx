@@ -1,59 +1,106 @@
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Swipeable } from "react-native-gesture-handler";
-import type { Activity } from "./db.native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
+import type { Activity } from "./db";
 
-export function ActivityRow({
-    item,
-    onDelete,
-}: {
-    item: Activity;
-    onDelete: () => void;
-}) {
-    const renderDelete = () => (
-        <Pressable style={styles.deleteBtn} onPress={onDelete}>
-            <Text style={styles.deleteText}>Delete</Text>
-        </Pressable>
-    );
-
-    const subtitle =
-        item.kind === "strength"
-            ? `${item.sets ?? 0} sets • ${item.reps ?? 0} reps${item.weight ? ` • ${item.weight} lb` : ""}`
-            : `${item.duration_minutes ?? 0} min${item.distance_miles ? ` • ${item.distance_miles} mi` : ""}`;
+function meta(label: string, value: string | number | null | undefined) {
+    if (value === null || value === undefined) return null;
+    const str = String(value).trim();
+    if (!str) return null;
 
     return (
-        <Swipeable renderLeftActions={renderDelete} renderRightActions={renderDelete}>
-            <View style={styles.row}>
-                <Text style={styles.title}>
-                    {item.kind === "strength" ? "🏋️ " : "🏃 "}
-                    {item.title}
+        <Text style={styles.metaText}>
+            <Text style={styles.metaLabel}>{label}:</Text> {str}
+        </Text>
+    );
+}
+
+export function ActivityRow({
+    a,
+    onDelete,
+}: {
+    a: Activity;
+    onDelete?: () => void;
+}) {
+    const isStrength = a.kind === "strength";
+
+    return (
+        <View style={styles.card}>
+            <View style={styles.topRow}>
+                <Text style={styles.title} numberOfLines={1}>
+                    {a.title}
                 </Text>
-                <Text style={styles.subtitle}>{subtitle}</Text>
-                {!!item.notes && <Text style={styles.notes}>{item.notes}</Text>}
+
+                <View style={styles.rightTop}>
+                    <Text style={styles.badge}>{isStrength ? "Strength" : "Conditioning"}</Text>
+
+                    {onDelete ? (
+                        <Pressable
+                            onPress={onDelete}
+                            style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.8 }]}
+                            accessibilityRole="button"
+                            accessibilityLabel="Delete activity"
+                        >
+                            <Text style={styles.deleteText}>Delete</Text>
+                        </Pressable>
+                    ) : null}
+                </View>
             </View>
-        </Swipeable>
+
+            <View style={styles.metaBlock}>
+                {isStrength ? (
+                    <>
+                        {meta("Sets", a.sets)}
+                        {meta("Reps", a.reps)}
+                        {meta("Weight", a.weight)}
+                    </>
+                ) : (
+                    <>
+                        {meta("Minutes", a.duration_minutes)}
+                        {meta("Miles", a.distance_miles)}
+                    </>
+                )}
+                {meta("Notes", a.notes)}
+                {meta("Added", a.created_at)}
+            </View>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    row: {
+    card: {
         padding: 14,
-        borderRadius: 12,
-        backgroundColor: "white",
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: "#E5E7EB",
-        marginBottom: 10,
+        backgroundColor: "#fff",
+        marginBottom: 12,
     },
-    title: { fontSize: 16, fontWeight: "800", color: "#111827" },
-    subtitle: { marginTop: 4, fontSize: 12, opacity: 0.7 },
-    notes: { marginTop: 6, fontSize: 12, opacity: 0.85 },
-    deleteBtn: {
-        justifyContent: "center",
+    topRow: {
+        flexDirection: "row",
         alignItems: "center",
-        width: 96,
-        marginBottom: 10,
-        borderRadius: 12,
-        backgroundColor: "#EF4444",
+        gap: 10,
+        justifyContent: "space-between",
     },
-    deleteText: { color: "white", fontWeight: "900" },
+    title: { fontSize: 16, fontWeight: "900", flex: 1, color: "#0F172A" },
+    rightTop: { flexDirection: "row", alignItems: "center", gap: 8 },
+    badge: {
+        fontSize: 12,
+        fontWeight: "900",
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: "#0F172A",
+        color: "white",
+    },
+    deleteBtn: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 999,
+        backgroundColor: "#FEE2E2",
+        borderWidth: 1,
+        borderColor: "#FCA5A5",
+    },
+    deleteText: { fontSize: 12, fontWeight: "900", color: "#991B1B" },
+    metaBlock: { marginTop: 10, gap: 4 },
+    metaText: { fontSize: 13, color: "#111827" },
+    metaLabel: { fontWeight: "900" },
 });

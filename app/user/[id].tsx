@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { ActivityRow } from "../../src/ActivityRow";
+import { SwipeToDelete } from "../../src/SwipeToDelete";
+
 
 import {
     initDb,
@@ -10,8 +13,6 @@ import {
     deleteAllActivitiesForUser,
     Activity,
 } from "../../src/db";
-
-import { ActivityRow } from "../../src/ActivityRow";
 
 export default function UserDetail() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -60,14 +61,16 @@ export default function UserDetail() {
                     data={activities}
                     keyExtractor={(a) => String(a.id)}
                     renderItem={({ item }) => (
-                        <ActivityRow
-                            item={item}
+                        <SwipeToDelete
                             onDelete={() => {
                                 deleteActivity(item.id);
                                 setActivities(getActivitiesForUser(userId));
                             }}
-                        />
+                        >
+                            <ActivityRow a={item} />
+                        </SwipeToDelete>
                     )}
+
                     ListEmptyComponent={
                         <Text style={styles.empty}>No activities yet. Add one 👇</Text>
                     }
