@@ -32,7 +32,7 @@ export default function UsersHome() {
         <FlashList
           data={users}
           keyExtractor={(u) => String(u.id)}
-          estimatedItemSize={72}
+          // If your TS complains, remove this prop:
           renderItem={({ item }) => (
             <UserRow
               user={item}

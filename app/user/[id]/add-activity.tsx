@@ -1,7 +1,12 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { addStrengthActivity, addConditioningActivity, initDb, ActivityKind } from "../../../src/db";
+import {
+    addStrengthActivity,
+    addConditioningActivity,
+    initDb,
+    ActivityKind,
+} from "../../../src/db";
 
 export default function AddActivity() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,17 +58,31 @@ export default function AddActivity() {
                     style={[styles.toggleBtn, kind === "strength" && styles.toggleActive]}
                     onPress={() => setKind("strength")}
                 >
-                    <Text style={[styles.toggleText, kind === "strength" && styles.toggleTextActive]}>Strength</Text>
+                    <Text style={[styles.toggleText, kind === "strength" && styles.toggleTextActive]}>
+                        Strength
+                    </Text>
                 </Pressable>
                 <Pressable
                     style={[styles.toggleBtn, kind === "conditioning" && styles.toggleActive]}
                     onPress={() => setKind("conditioning")}
                 >
-                    <Text style={[styles.toggleText, kind === "conditioning" && styles.toggleTextActive]}>Conditioning</Text>
+                    <Text
+                        style={[
+                            styles.toggleText,
+                            kind === "conditioning" && styles.toggleTextActive,
+                        ]}
+                    >
+                        Conditioning
+                    </Text>
                 </Pressable>
             </View>
 
-            <TextInput value={title} onChangeText={setTitle} placeholder="Title (ex: Bench, 3-mile run)" style={styles.input} />
+            <TextInput
+                value={title}
+                onChangeText={setTitle}
+                placeholder="Title (ex: Bench, 3-mile run)"
+                style={styles.input}
+            />
 
             {kind === "strength" ? (
                 <>

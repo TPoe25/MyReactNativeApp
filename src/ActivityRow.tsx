@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
         borderColor: "#E5E7EB",
         marginBottom: 10,
     },
-    title: { fontSize: 16, fontWeight: "700" },
+    title: { fontSize: 16, fontWeight: "800", color: "#111827" },
     subtitle: { marginTop: 4, fontSize: 12, opacity: 0.7 },
     notes: { marginTop: 6, fontSize: 12, opacity: 0.85 },
     deleteBtn: {
@@ -55,5 +55,5 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         backgroundColor: "#EF4444",
     },
-    deleteText: { color: "white", fontWeight: "800" },
+    deleteText: { color: "white", fontWeight: "900" },
 });

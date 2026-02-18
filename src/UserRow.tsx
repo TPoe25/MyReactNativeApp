@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import type { User } from "./db";
 
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
     marginBottom: 10,
   },
-  name: { fontSize: 16, fontWeight: "700" },
+  name: { fontSize: 16, fontWeight: "800", color: "#111827" },
   meta: { marginTop: 4, fontSize: 12, opacity: 0.6 },
   deleteBtn: {
     justifyContent: "center",
@@ -47,5 +47,5 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#EF4444",
   },
-  deleteText: { color: "white", fontWeight: "800" },
+  deleteText: { color: "white", fontWeight: "900" },
 });

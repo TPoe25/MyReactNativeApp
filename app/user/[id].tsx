@@ -3,8 +3,15 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 
-import { initDb, getActivitiesForUser, deleteActivity, deleteAllActivitiesForUser, Activity } from "../../src/db";
-import { ActivityRow } from "../../src/components/ActivityRow";
+import {
+    initDb,
+    getActivitiesForUser,
+    deleteActivity,
+    deleteAllActivitiesForUser,
+    Activity,
+} from "../../src/db";
+
+import { ActivityRow } from "../../src/ActivityRow";
 
 export default function UserDetail() {
     const { id } = useLocalSearchParams<{ id: string }>();
@@ -52,7 +59,6 @@ export default function UserDetail() {
                 <FlashList
                     data={activities}
                     keyExtractor={(a) => String(a.id)}
-                    estimatedItemSize={84}
                     renderItem={({ item }) => (
                         <ActivityRow
                             item={item}

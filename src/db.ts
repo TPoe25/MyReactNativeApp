@@ -1,36 +1,49 @@
-import * as SQLite from "expo-sqlite";
+import { Platform } from "react-native";
 
-const db = SQLite.openDatabaseSync("sports_tracker.db");
-
-export type User = {
-  id: number;
-  name: string;
-  created_at: string;
-};
-
+export type User = { id: number; name: string; created_at: string };
 export type ActivityKind = "strength" | "conditioning";
 
 export type Activity = {
-  id: number;
-  user_id: number;
-  kind: ActivityKind;
-  title: string;
+    id: number;
+    user_id: number;
+    kind: ActivityKind;
+    title: string;
 
-  // strength
-  sets: number | null;
-  reps: number | null;
-  weight: number | null;
+    // strength
+    sets: number | null;
+    reps: number | null;
+    weight: number | null;
 
-  // conditioning
-  duration_minutes: number | null;
-  distance_miles: number | null;
+    // conditioning
+    duration_minutes: number | null;
+    distance_miles: number | null;
 
-  notes: string | null;
-  created_at: string;
+    notes: string | null;
+    created_at: string;
 };
 
+const isWeb = Platform.OS === "web";
+
+// WEB fallback (in-memory)
+let webUsers: User[] = [];
+let webActivities: Activity[] = [];
+let webUserId = 1;
+let webActivityId = 1;
+
+// Native SQLite handle (only created on native)
+let db: any = null;
+
 export function initDb() {
-  db.execSync(`
+    if (isWeb) return;
+
+    if (db) return; // already initialized
+
+    // require() only on native so web bundler never tries to load wasm
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const SQLite = require("expo-sqlite");
+    db = SQLite.openDatabaseSync("sports_tracker.db");
+
+    db.execSync(`
     PRAGMA journal_mode = WAL;
 
     CREATE TABLE IF NOT EXISTS users (
@@ -53,92 +66,162 @@ export function initDb() {
       distance_miles REAL,
 
       notes TEXT,
-      created_at TEXT NOT NULL,
-
-      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+      created_at TEXT NOT NULL
     );
   `);
 }
 
-// ---- users ----
+/* ---------------- USERS ---------------- */
+
 export function getUsers(): User[] {
-  return db.getAllSync<User>(`SELECT * FROM users ORDER BY id DESC;`);
+    if (isWeb) return [...webUsers].sort((a, b) => b.id - a.id);
+    initDb();
+    return db.getAllSync<User>(`SELECT * FROM users ORDER BY id DESC;`);
 }
 
 export function addUser(name: string) {
-  const n = name.trim();
-  if (!n) return;
-  db.runSync(`INSERT INTO users (name, created_at) VALUES (?, datetime('now'));`, [n]);
+    const n = name.trim();
+    if (!n) return;
+
+    if (isWeb) {
+        webUsers.push({ id: webUserId++, name: n, created_at: new Date().toISOString() });
+        return;
+    }
+
+    initDb();
+    db.runSync(`INSERT INTO users (name, created_at) VALUES (?, datetime('now'));`, [n]);
 }
 
-export function deleteUser(id: number) {
-  // delete activities first (SQLite FK cascade may not always be enforced depending on settings)
-  db.runSync(`DELETE FROM activities WHERE user_id = ?;`, [id]);
-  db.runSync(`DELETE FROM users WHERE id = ?;`, [id]);
+export function deleteUser(userId: number) {
+    if (isWeb) {
+        webActivities = webActivities.filter((a) => a.user_id !== userId);
+        webUsers = webUsers.filter((u) => u.id !== userId);
+        return;
+    }
+
+    initDb();
+    db.runSync(`DELETE FROM activities WHERE user_id = ?;`, [userId]);
+    db.runSync(`DELETE FROM users WHERE id = ?;`, [userId]);
 }
 
-// ---- activities ----
+/* -------------- ACTIVITIES -------------- */
+
 export function getActivitiesForUser(userId: number): Activity[] {
-  return db.getAllSync<Activity>(
-    `SELECT * FROM activities WHERE user_id = ? ORDER BY id DESC;`,
-    [userId]
-  );
+    if (isWeb) {
+        return webActivities
+            .filter((a) => a.user_id === userId)
+            .sort((a, b) => b.id - a.id);
+    }
+
+    initDb();
+    return db.getAllSync<Activity>(
+        `SELECT * FROM activities WHERE user_id = ? ORDER BY id DESC;`,
+        [userId]
+    );
 }
 
 export function addStrengthActivity(args: {
-  userId: number;
-  title: string;
-  sets: number;
-  reps: number;
-  weight?: number;
-  notes?: string;
+    userId: number;
+    title: string;
+    sets: number;
+    reps: number;
+    weight?: number;
+    notes?: string;
 }) {
-  const title = args.title.trim();
-  if (!title) return;
+    const title = args.title.trim();
+    if (!title) return;
 
-  db.runSync(
-    `INSERT INTO activities (
+    if (isWeb) {
+        webActivities.push({
+            id: webActivityId++,
+            user_id: args.userId,
+            kind: "strength",
+            title,
+            sets: args.sets,
+            reps: args.reps,
+            weight: typeof args.weight === "number" ? args.weight : null,
+            duration_minutes: null,
+            distance_miles: null,
+            notes: args.notes?.trim() || null,
+            created_at: new Date().toISOString(),
+        });
+        return;
+    }
+
+    initDb();
+    db.runSync(
+        `INSERT INTO activities (
       user_id, kind, title, sets, reps, weight, duration_minutes, distance_miles, notes, created_at
     ) VALUES (?, 'strength', ?, ?, ?, ?, NULL, NULL, ?, datetime('now'));`,
-    [
-      args.userId,
-      title,
-      args.sets,
-      args.reps,
-      typeof args.weight === "number" ? args.weight : null,
-      args.notes?.trim() || null,
-    ]
-  );
+        [
+            args.userId,
+            title,
+            args.sets,
+            args.reps,
+            typeof args.weight === "number" ? args.weight : null,
+            args.notes?.trim() || null,
+        ]
+    );
 }
 
 export function addConditioningActivity(args: {
-  userId: number;
-  title: string;
-  durationMinutes: number;
-  distanceMiles?: number;
-  notes?: string;
+    userId: number;
+    title: string;
+    durationMinutes: number;
+    distanceMiles?: number;
+    notes?: string;
 }) {
-  const title = args.title.trim();
-  if (!title) return;
+    const title = args.title.trim();
+    if (!title) return;
 
-  db.runSync(
-    `INSERT INTO activities (
+    if (isWeb) {
+        webActivities.push({
+            id: webActivityId++,
+            user_id: args.userId,
+            kind: "conditioning",
+            title,
+            sets: null,
+            reps: null,
+            weight: null,
+            duration_minutes: args.durationMinutes,
+            distance_miles: typeof args.distanceMiles === "number" ? args.distanceMiles : null,
+            notes: args.notes?.trim() || null,
+            created_at: new Date().toISOString(),
+        });
+        return;
+    }
+
+    initDb();
+    db.runSync(
+        `INSERT INTO activities (
       user_id, kind, title, sets, reps, weight, duration_minutes, distance_miles, notes, created_at
     ) VALUES (?, 'conditioning', ?, NULL, NULL, NULL, ?, ?, ?, datetime('now'));`,
-    [
-      args.userId,
-      title,
-      args.durationMinutes,
-      typeof args.distanceMiles === "number" ? args.distanceMiles : null,
-      args.notes?.trim() || null,
-    ]
-  );
+        [
+            args.userId,
+            title,
+            args.durationMinutes,
+            typeof args.distanceMiles === "number" ? args.distanceMiles : null,
+            args.notes?.trim() || null,
+        ]
+    );
 }
 
-export function deleteActivity(id: number) {
-  db.runSync(`DELETE FROM activities WHERE id = ?;`, [id]);
+export function deleteActivity(activityId: number) {
+    if (isWeb) {
+        webActivities = webActivities.filter((a) => a.id !== activityId);
+        return;
+    }
+
+    initDb();
+    db.runSync(`DELETE FROM activities WHERE id = ?;`, [activityId]);
 }
 
 export function deleteAllActivitiesForUser(userId: number) {
-  db.runSync(`DELETE FROM activities WHERE user_id = ?;`, [userId]);
+    if (isWeb) {
+        webActivities = webActivities.filter((a) => a.user_id !== userId);
+        return;
+    }
+
+    initDb();
+    db.runSync(`DELETE FROM activities WHERE user_id = ?;`, [userId]);
 }
