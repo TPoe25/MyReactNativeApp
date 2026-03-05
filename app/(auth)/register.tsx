@@ -1,14 +1,45 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Alert
+} from "react-native";
 import { router } from "expo-router";
+
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../src/firebase";
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function createAccount() {
-    // No real auth yet (Step 2). Just route into the logged-in app.
-    router.replace("/(tabs)/home");
+  async function createAccount() {
+    if (!email || !password) {
+      Alert.alert("Missing info", "Please enter email and password.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await createUserWithEmailAndPassword(
+        auth,
+        email.trim(),
+        password
+      );
+
+      router.replace("/(tabs)/home");
+    } catch (err: any) {
+      Alert.alert("Signup failed", err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -22,6 +53,7 @@ export default function RegisterScreen() {
 
         <View style={styles.card}>
           <Text style={styles.label}>Email</Text>
+
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -34,6 +66,7 @@ export default function RegisterScreen() {
           />
 
           <Text style={[styles.label, { marginTop: 12 }]}>Password</Text>
+
           <TextInput
             value={password}
             onChangeText={setPassword}
@@ -43,12 +76,23 @@ export default function RegisterScreen() {
             style={styles.input}
           />
 
-          <Pressable onPress={createAccount} style={styles.primaryBtn}>
-            <Text style={styles.primaryText}>Create Account</Text>
+          <Pressable
+            onPress={createAccount}
+            style={styles.primaryBtn}
+            disabled={loading}
+          >
+            <Text style={styles.primaryText}>
+              {loading ? "Creating..." : "Create Account"}
+            </Text>
           </Pressable>
 
-          <Pressable onPress={() => router.push("/(auth)/login")} style={styles.linkBtn}>
-            <Text style={styles.linkText}>Login to an existing account</Text>
+          <Pressable
+            onPress={() => router.push("/(auth)/login")}
+            style={styles.linkBtn}
+          >
+            <Text style={styles.linkText}>
+              Login to an existing account
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -62,15 +106,24 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: "center",
   },
+
   title: { fontSize: 34, fontWeight: "900", color: "white" },
-  subtitle: { marginTop: 6, fontSize: 16, color: "#CBD5E1", marginBottom: 18 },
+
+  subtitle: {
+    marginTop: 6,
+    fontSize: 16,
+    color: "#CBD5E1",
+    marginBottom: 18,
+  },
 
   card: {
     backgroundColor: "white",
     borderRadius: 18,
     padding: 18,
   },
+
   label: { fontSize: 13, fontWeight: "800", color: "#0F172A" },
+
   input: {
     marginTop: 8,
     backgroundColor: "#F1F5F9",
@@ -81,6 +134,7 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     fontSize: 16,
   },
+
   primaryBtn: {
     marginTop: 16,
     backgroundColor: "#0F172A",
@@ -88,8 +142,22 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
   },
-  primaryText: { color: "white", fontSize: 16, fontWeight: "900" },
 
-  linkBtn: { marginTop: 14, alignItems: "center" },
-  linkText: { fontSize: 14, fontWeight: "800", color: "#0F172A", opacity: 0.85 },
+  primaryText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "900",
+  },
+
+  linkBtn: {
+    marginTop: 14,
+    alignItems: "center",
+  },
+
+  linkText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F172A",
+    opacity: 0.85,
+  },
 });
