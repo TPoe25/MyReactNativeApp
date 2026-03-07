@@ -7,11 +7,10 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert
+  Alert,
 } from "react-native";
-
 import { router } from "expo-router";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { AuthError, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../src/firebase";
 
 export default function LoginScreen() {
@@ -20,19 +19,33 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   async function login() {
+    const e = email.trim().toLowerCase();
+    const p = password;
+
+    if (!e.includes("@")) {
+      Alert.alert("Invalid email", "Please enter a valid email address.");
+      return;
+    }
+    if (p.length < 6) {
+      Alert.alert("Invalid password", "Password must be at least 6 characters.");
+      return;
+    }
+
     try {
       setLoading(true);
-
-      await signInWithEmailAndPassword(
-        auth,
-        email.trim(),
-        password
-      );
-
+      await signInWithEmailAndPassword(auth, e, p);
       router.replace("/(tabs)/home");
-
-    } catch (err: any) {
-      Alert.alert("Login failed", err.message);
+    } catch (err) {
+      const error = err as AuthError;
+      const message =
+        error?.code === "auth/user-not-found" || error?.code === "auth/wrong-password"
+          ? "Invalid email or password."
+          : error?.code === "auth/invalid-credential"
+            ? "Invalid email or password."
+            : error?.code === "auth/network-request-failed"
+              ? "Network error. Check connection and try again."
+              : error?.message ?? "Unknown error";
+      Alert.alert("Login failed", message);
     } finally {
       setLoading(false);
     }
@@ -45,11 +58,10 @@ export default function LoginScreen() {
     >
       <View style={styles.container}>
         <Text style={styles.title}>Welcome back</Text>
-        <Text style={styles.subtitle}>Login to your account</Text>
+        <Text style={styles.subtitle}>Log in to continue</Text>
 
         <View style={styles.card}>
           <Text style={styles.label}>Email</Text>
-
           <TextInput
             value={email}
             onChangeText={setEmail}
@@ -57,13 +69,11 @@ export default function LoginScreen() {
             placeholderTextColor="#94A3B8"
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
             style={styles.input}
           />
 
-          <Text style={[styles.label, { marginTop: 12 }]}>
-            Password
-          </Text>
-
+          <Text style={[styles.label, { marginTop: 12 }]}>Password</Text>
           <TextInput
             value={password}
             onChangeText={setPassword}
@@ -75,21 +85,14 @@ export default function LoginScreen() {
 
           <Pressable
             onPress={login}
-            style={styles.primaryBtn}
+            style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.92 }]}
             disabled={loading}
           >
-            <Text style={styles.primaryText}>
-              {loading ? "Signing in..." : "Login"}
-            </Text>
+            <Text style={styles.primaryText}>{loading ? "Logging in..." : "Login"}</Text>
           </Pressable>
 
-          <Pressable
-            onPress={() => router.push("/(auth)/register")}
-            style={styles.linkBtn}
-          >
-            <Text style={styles.linkText}>
-              Create a new account
-            </Text>
+          <Pressable onPress={() => router.push("/(auth)/register")} style={styles.linkBtn}>
+            <Text style={styles.linkText}>Create a new account</Text>
           </Pressable>
         </View>
       </View>
@@ -98,29 +101,12 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    justifyContent: "center",
-  },
-
+  container: { flex: 1, padding: 20, justifyContent: "center" },
   title: { fontSize: 34, fontWeight: "900", color: "white" },
+  subtitle: { marginTop: 6, fontSize: 16, color: "#CBD5E1", marginBottom: 18 },
 
-  subtitle: {
-    marginTop: 6,
-    fontSize: 16,
-    color: "#CBD5E1",
-    marginBottom: 18,
-  },
-
-  card: {
-    backgroundColor: "white",
-    borderRadius: 18,
-    padding: 18,
-  },
-
+  card: { backgroundColor: "white", borderRadius: 18, padding: 18 },
   label: { fontSize: 13, fontWeight: "800", color: "#0F172A" },
-
   input: {
     marginTop: 8,
     backgroundColor: "#F1F5F9",
@@ -131,7 +117,6 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     fontSize: 16,
   },
-
   primaryBtn: {
     marginTop: 16,
     backgroundColor: "#0F172A",
@@ -139,22 +124,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center",
   },
-
-  primaryText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "900",
-  },
-
-  linkBtn: {
-    marginTop: 14,
-    alignItems: "center",
-  },
-
-  linkText: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#0F172A",
-    opacity: 0.85,
-  },
+  primaryText: { color: "white", fontSize: 16, fontWeight: "900" },
+  linkBtn: { marginTop: 14, alignItems: "center" },
+  linkText: { fontSize: 14, fontWeight: "800", color: "#0F172A", opacity: 0.85 },
 });

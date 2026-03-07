@@ -1,25 +1,30 @@
-import { Tabs, router } from "expo-router";
-import { Pressable, Text } from "react-native";
-
+import { useEffect, useState } from "react";
+import { Redirect, Tabs } from "expo-router";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../../src/firebase";
 
 export default function TabsLayout() {
+  const [ready, setReady] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setSignedIn(!!user);
+      setReady(true);
+    });
+    return unsub;
+  }, []);
+
+  if (!ready) return null;
+  if (!signedIn) return <Redirect href="/(auth)/login" />;
+
   return (
     <Tabs
       screenOptions={{
         headerTitleAlign: "center",
         tabBarActiveTintColor: "#0F172A",
         tabBarInactiveTintColor: "#9CA3AF",
-        tabBarLabelStyle: {
-          fontWeight: "700",
-        },
-        headerRight: () => (
-          <Pressable
-            onPress={() => router.replace("/(auth)/login")}
-            style={{ paddingRight: 14 }}
-          >
-            <Text style={{ fontWeight: "800" }}>Logout</Text>
-          </Pressable>
-        ),
+        tabBarLabelStyle: { fontWeight: "700" },
       }}
     >
       <Tabs.Screen name="home" options={{ title: "Home" }} />

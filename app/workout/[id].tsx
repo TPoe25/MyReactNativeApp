@@ -1,5 +1,8 @@
-import { ScrollView, View, Text, StyleSheet, Pressable, Image } from "react-native";
+import { ScrollView, View, Text, StyleSheet, Pressable, Image, Alert } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
+import { auth, db } from "../../src/firebase";
+import { addWorkoutLog } from "../../src/workouts/logs";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
 export default function WorkoutDetail() {
     const p = useLocalSearchParams<{
@@ -15,10 +18,127 @@ export default function WorkoutDetail() {
     }>();
 
     const equipments = p.equipments ? (JSON.parse(p.equipments) as string[]) : [];
+    const workoutId = (p.id ?? p.name ?? "workout").toString().toLowerCase().replace(/\s+/g, "-");
+
+    function goBack() {
+        if (router.canGoBack()) {
+            router.back();
+            return;
+        }
+        router.replace("/(tabs)/search");
+    }
+
+    function addAsActivity() {
+        const current = auth.currentUser;
+        if (!current) {
+            Alert.alert("Sign in required", "Please log in to add activities.");
+            return;
+        }
+        router.push({
+            pathname: "/workout/add-activity",
+            params: {
+                name: p.name ?? "Workout",
+                type: p.type ?? "",
+                muscle: p.muscle ?? "",
+                difficulty: p.difficulty ?? "",
+                instructions: p.instructions ?? "",
+                gifUrl: p.gifUrl ?? "",
+            },
+        });
+    }
+
+    async function persistFavoriteWorkout() {
+        const current = auth.currentUser;
+        if (!current) {
+            Alert.alert("Sign in required", "Please log in to save favorites.");
+            return;
+        }
+
+        try {
+            await setDoc(
+                doc(db, "favorites", current.uid, "workouts", workoutId),
+                {
+                    workoutId,
+                    name: p.name ?? "Workout",
+                    type: p.type ?? "",
+                    muscle: p.muscle ?? "",
+                    difficulty: p.difficulty ?? "",
+                    gifUrl: p.gifUrl ?? null,
+                    instructions: p.instructions ?? "",
+                    safety_info: p.safety_info ?? "",
+                    createdAt: serverTimestamp(),
+                },
+                { merge: true }
+            );
+            return;
+        } catch (e: any) {
+            const code = e?.code ?? "";
+            if (code !== "permission-denied" && code !== "firestore/permission-denied") {
+                throw e;
+            }
+        }
+
+        // Fallback for projects still running older rules (posts subcollection only)
+        await setDoc(
+            doc(db, "favorites", current.uid, "posts", `workout-${workoutId}`),
+            {
+                kind: "workout",
+                workoutId,
+                name: p.name ?? "Workout",
+                type: p.type ?? "",
+                muscle: p.muscle ?? "",
+                difficulty: p.difficulty ?? "",
+                gifUrl: p.gifUrl ?? null,
+                instructions: p.instructions ?? "",
+                safety_info: p.safety_info ?? "",
+                createdAt: serverTimestamp(),
+            },
+            { merge: true }
+        );
+    }
+
+    async function saveFavoriteOnly() {
+        try {
+            await persistFavoriteWorkout();
+            Alert.alert("Saved", "Workout saved to favorites.");
+        } catch (e: any) {
+            Alert.alert("Save failed", e?.message ?? "Unknown error");
+        }
+    }
+
+    async function saveFavoriteAndAddActivity() {
+        const current = auth.currentUser;
+        if (!current) {
+            Alert.alert("Sign in required", "Please log in first.");
+            return;
+        }
+
+        try {
+            await persistFavoriteWorkout();
+            await addWorkoutLog({
+                uid: current.uid,
+                exerciseName: p.name ?? "Workout",
+                sets: 3,
+                reps: 10,
+                notes: p.instructions ?? "Saved from favorites",
+            });
+            Alert.alert("Saved", "Workout saved to favorites and activity log.");
+        } catch (e: any) {
+            Alert.alert("Save failed", e?.message ?? "Unknown error");
+        }
+    }
+
+    function saveFavoriteWorkout() {
+        Alert.alert("Save favorite", "Choose how you want to save this workout.", [
+            { text: "Cancel", style: "cancel" },
+            { text: "Favorites only", onPress: () => void saveFavoriteOnly() },
+            { text: "Favorites + Activity Log", onPress: () => void saveFavoriteAndAddActivity() },
+        ]);
+    }
 
     return (
         <ScrollView contentContainerStyle={styles.page}>
-            <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <Pressable onPress={goBack} style={styles.backBtn}>
                 <Text style={styles.backText}>Back</Text>
             </Pressable>
 
@@ -48,6 +168,15 @@ export default function WorkoutDetail() {
                     <Text style={styles.cardText}>{p.safety_info}</Text>
                 </View>
             ) : null}
+
+            <View style={styles.actionsRow}>
+                <Pressable style={styles.primaryBtn} onPress={addAsActivity}>
+                    <Text style={styles.primaryText}>Add As Activity</Text>
+                </Pressable>
+                <Pressable style={styles.secondaryBtn} onPress={saveFavoriteWorkout}>
+                    <Text style={styles.secondaryText}>Save Favorite</Text>
+                </Pressable>
+            </View>
         </ScrollView>
     );
 }
@@ -69,4 +198,23 @@ const styles = StyleSheet.create({
     },
     cardTitle: { fontSize: 16, fontWeight: "900", marginBottom: 8, color: "#0F172A" },
     cardText: { opacity: 0.85, color: "#111827", lineHeight: 20 },
+    actionsRow: { flexDirection: "row", gap: 12, marginTop: 18, marginBottom: 8 },
+    primaryBtn: {
+        flex: 1,
+        backgroundColor: "#0F172A",
+        borderRadius: 14,
+        paddingVertical: 14,
+        alignItems: "center",
+    },
+    primaryText: { color: "white", fontWeight: "900" },
+    secondaryBtn: {
+        flex: 1,
+        backgroundColor: "white",
+        borderRadius: 14,
+        paddingVertical: 14,
+        alignItems: "center",
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+    },
+    secondaryText: { color: "#0F172A", fontWeight: "900" },
 });
