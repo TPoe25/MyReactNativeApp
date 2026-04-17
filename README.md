@@ -1,50 +1,121 @@
-# Welcome to your Expo app 👋
+Fitness Tracker App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A full-stack mobile fitness application built with React Native (Expo) and Firebase.
+The app allows users to create accounts, log workouts, upload posts, and search exercises using a real API.
 
-## Get started
+Overview
 
-1. Install dependencies
+This project focuses on building a real-world fitness tracking platform with:
 
-   ```bash
-   npm install
-   ```
+User authentication
+Workout logging
+Social-style posting (images + captions)
+Exercise search with API integration
+Cloud storage + database integration
 
-2. Start the app
+The goal was to create a scalable, data-driven mobile app that demonstrates full-stack capabilities.
 
-   ```bash
-   npx expo start
-   ```
+Features
+User Authentication (Firebase Auth)
+Register / Login with email + password
+Persistent login state
+Workout Tracking
+Log workouts tied to a user
+Store and retrieve workout history
+Structured data stored in Firestore
+Exercise Search
+Search exercises (bench, curl, run, etc.)
+Powered by API Ninjas
+Results enhanced with GIFs when available
+Social Feed
+Users can create posts
+Image uploads stored in Firebase Storage
+Feed updates in real-time using Firestore listeners
+User Profiles
+View user-specific content
+Workout logs tied to profiles
+Expandable for follower system
+Tech Stack
+Frontend
+React Native (Expo)
+Expo Router
+FlashList (performance optimized lists)
+Backend / Cloud
+Firebase Authentication
+Firebase Firestore (NoSQL database)
+Firebase Storage (image uploads)
+APIs
+API Ninjas (exercise search)
+Data Flow
+User → App → Firebase Auth → Firestore / Storage → UI updates in real-time
+Auth manages user identity
+Firestore stores structured data (posts, logs, profiles)
+Storage handles media uploads
+Snapshot listeners keep UI in sync
+Project Structure
+app/
+  (auth)/
+    login.tsx
+    register.tsx
+  (tabs)/
+    home.tsx
+    search.tsx
+    add-post.tsx
+    profile.tsx
+  user/
+    [id].tsx
 
-In the output, you'll find options to open the app in a
+src/
+  firebase.ts
+  PostsContext.tsx
+  ProfileContext.tsx
+  uploadImage.ts
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+  workouts/
+    logs.ts
+    types.ts
+    apiNinjas.ts
+    attachGifs.ts
+Setup Instructions
+1. Clone repo
+git clone https://github.com/TPoe25/MyReactNativeApp.git
+cd MyReactNativeApp
+2. Install dependencies
+npm install
+3. Create .env
+EXPO_PUBLIC_API_NINJAS_KEY=your_key
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+EXPO_PUBLIC_FIREBASE_API_KEY=your_key
+EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_domain
+EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_bucket
+EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
+4. Start the app
+npx expo start --clear
+Firebase Setup
+Enable Authentication → Email/Password
+Create Firestore Database
+Enable Storage
+Update Firestore rules for authenticated access
+Key Implementation Details
+Debounced search prevents excessive API calls
+AbortController cancels outdated requests
+Context API manages global state (posts + profile)
+Real-time updates via onSnapshot
+Secure writes tied to authenticated user IDs
+Challenges
+Managing Firebase security rules with real-time listeners
+Handling async state between authentication and Firestore queries
+Integrating external APIs with mobile UI performance
+Debugging Expo + Firebase + environment variable issues
+Future Improvements
+Add workout analytics (charts, progress tracking)
+Implement followers / social interactions
+Improve recommendation system for exercises
+Add notifications
+Deploy production build (EAS + App Store)
+Author
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Taylor Poe
+Full Stack Developer
